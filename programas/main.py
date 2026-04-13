@@ -30,12 +30,12 @@ X_text, X_struct, y = split_features(df, "TextoDenuncia", "isfraud")
 
 # Embeddings (texto → vectores)
 embedder = HFEmbedder()
-X_text_emb = embedder.encode(X_text.tolist())
+X_text_emb = embedder.encode(X_text.tolist()) # aca devolveria algo de estilo [54411, 384], el 384 es el tamaño del vector que representa un texto (el que vamos a usar), 54411 es la cantidad de textos
 
 # Procesar datos estructurados (solo numéricos)
-X_struct = X_struct.select_dtypes(include=[np.number]).fillna(0).values
+X_struct = X_struct.select_dtypes(include=[np.number]).fillna(0).values # devuleve algo como [54411, 10], 10 es la cantidad de variables numéricas
 
-# 6. Split (IMPORTANTE: después de todo el procesamiento)
+# Split (IMPORTANTE: después de todo el procesamiento)
 X_text_train, X_text_test, X_struct_train, X_struct_test, y_train, y_test = train_test_split(
     X_text_emb, X_struct, y,
     test_size=0.2,
@@ -43,11 +43,11 @@ X_text_train, X_text_test, X_struct_train, X_struct_test, y_train, y_test = trai
     stratify=y
 )
 
-# 7. Crear modelo
+# Crear modelo
 model = build_model(X_text_emb.shape[1], X_struct.shape[1])
 
 
-# 9. Entrenar (con balanceo)
+# Entrenar (con balanceo) despues emterlo en train.py
 history = model.fit(
     [X_text_train, X_struct_train],
     y_train,

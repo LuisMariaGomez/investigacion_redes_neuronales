@@ -8,4 +8,4 @@
 weighted avg       0.97      0.08      0.11     10883
 
 
-no cambio nada, a ponerse con las cosas que dije antes.
+no cambio nada, a ponerse con las cosas que dije antes y/o revisar el tema del X_struct, ya que el problema puede ser la suciedad de datos mas que el modelo en si

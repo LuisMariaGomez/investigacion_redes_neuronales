@@ -1,0 +1,1 @@
+Fijarse en el X_struct que hay variables categoricas que pueden servir, con el select_dtypes(include=[np.number]) se vuelan, si el modelo hace mal las cosas ver de incluirlo

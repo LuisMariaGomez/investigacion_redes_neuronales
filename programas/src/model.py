@@ -20,19 +20,19 @@ def build_model(input_text_dim, input_struct_dim):
     # Capas para datos estructurados
     x2 = Dense(32, activation='relu')(input_struct)
     
-    # Merge
+    # Mergear
     combined = Concatenate()([x1, x2])
     
     # Capas finales
-    x = Dense(64, activation='relu')(combined)
-    output = Dense(1, activation='sigmoid')(x)
+    x = Dense(64, activation='relu')(combined) # Aca ya vemos las combinaciones que pueden surgir entre la parte de texto y nummeros
+    output = Dense(1, activation='sigmoid')(x) # aca como es binario va 1 y bueno el sigmoid para verlo como probabilidad (de 0 a 1, iria de no fraude a fraude)
     
-    model = Model(inputs=[input_text, input_struct], outputs=output)
+    model = Model(inputs=[input_text, input_struct], outputs=output) # se definenn las entradas (txto y datos estructurados) y la salida (prob de fraude)
     
     model.compile(
-        optimizer='adam',
-        loss='binary_crossentropy',
-        metrics=['accuracy']
+        optimizer='adam',                   # Para que vaya ajustando los pesos (no hay que tocarlo mucho)
+        loss='binary_crossentropy',         # Funcion de perdida, asi veo que tan mal le va (si es alta estamos mal, si es baja estamos bien)
+        metrics=['accuracy']                # Metricas en termminos de fraude (pred correctas / total predicciones)
     )
     
     return model
