@@ -1,0 +1,21 @@
+Ajustar los pesos de las clases (class_weight)
+    aumentar el peso de la clase fraude (ej: {0:1, 1:36}), objetivo: que el modelo le preste más atención al fraude
+Cambiar el umbral de decisión (threshold)
+    pasar de 0.5 a 0.3, objetivo: detectar más fraudes (aumentar recall)
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+              precision    recall  f1-score   support
+
+           0       0.99      0.07      0.13     10590
+           1       0.03      0.97      0.05       293
+
+    accuracy                           0.09     10883
+   macro avg       0.51      0.52      0.09     10883
+weighted avg       0.96      0.09      0.13     10883
+
+Bueno ahora esta paranoico, todo es frauda, ademas el accuracy en 0.09 es terrible
+seguro el threshold sesga   # investigar trade-off precision vs recall
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+para la proxima bajamos el peso y subimos un toque el threshold, sino pasamos a eso de oversampling (SMOTE) y focal loss.... mas tarea

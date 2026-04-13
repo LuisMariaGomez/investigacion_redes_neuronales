@@ -1,0 +1,66 @@
+.venv) luis-maria-gomez@luis-maria-gomez-Z390-AORUS-ELITE:~/Escritorio/Redes/investigacion_redes_neuronales/programas$ python main.py
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1776049102.461007   18643 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+Loading weights: 100%|██████████████████████████████████| 199/199 [00:00<00:00, 27689.31it/s]
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+model.safetensors: 100%|██████████████████████████████████| 471M/471M [00:29<00:00, 16.0MB/s]
+I0000 00:00:1776049161.816123   18643 gpu_device.cc:2043] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 4791 MB memory:  -> device: 0, name: NVIDIA GeForce RTX 3060 Ti, pci bus id: 0000:01:00.0, compute capability: 8.6
+Epoch 1/10
+I0000 00:00:1776049164.073554   19016 service.cc:153] XLA service 0x71002c005800 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+I0000 00:00:1776049164.073573   19016 service.cc:161]   StreamExecutor [0]: NVIDIA GeForce RTX 3060 Ti, Compute Capability 8.6 (Driver: 13.0.0; Runtime: 13.0.0; Toolkit: 12.5.0; DNN: 9.19.0)
+I0000 00:00:1776049164.115993   19016 dump_mlir_util.cc:269] disabling MLIR crash reproducer, set env var `MLIR_CRASH_REPRODUCER_DIRECTORY` to enable.
+I0000 00:00:1776049164.388626   19016 cuda_dnn.cc:461] Loaded cuDNN version 91900
+I0000 00:00:1776049164.398383   19016 dot_merger.cc:481] Merging Dots in computation: a_inference_one_step_on_data_1958__.11
+I0000 00:00:1776049164.424867   19016 dot_search_space.cc:240] All configs were filtered out because none of them sufficiently match the hints. Maybe the hints set does not contain a good representative set of valid configs? Working around this by using the full hints set instead.
+I0000 00:00:1776049165.270868   19016 dot_search_space.cc:240] All configs were filtered out because none of them sufficiently match the hints. Maybe the hints set does not contain a good representative set of valid configs? Working around this by using the full hints set instead.
+I0000 00:00:1776049166.003729   19016 dot_search_space.cc:240] All configs were filtered out because none of them sufficiently match the hints. Maybe the hints set does not contain a good representative set of valid configs? Working around this by using the full hints set instead.
+I0000 00:00:1776049166.702024   19083 subprocess_compilation.cc:348] ptxas warning : Registers are spilled to local memory in function 'gemm_fusion_MatMul_22', 76 bytes spill stores, 76 bytes spill loads
+
+I0000 00:00:1776049166.749674   19016 dot_search_space.cc:240] All configs were filtered out because none of them sufficiently match the hints. Maybe the hints set does not contain a good representative set of valid configs? Working around this by using the full hints set instead.
+I0000 00:00:1776049167.386268   19087 subprocess_compilation.cc:348] ptxas warning : Registers are spilled to local memory in function 'gemm_fusion_MatMul_32', 12 bytes spill stores, 12 bytes spill loads
+
+I0000 00:00:1776049167.405239   19016 dot_search_space.cc:240] All configs were filtered out because none of them sufficiently match the hints. Maybe the hints set does not contain a good representative set of valid configs? Working around this by using the full hints set instead.
+I0000 00:00:1776049167.904838   19082 subprocess_compilation.cc:348] ptxas warning : Registers are spilled to local memory in function 'gemm_fusion_MatMul_34', 12 bytes spill stores, 12 bytes spill loads
+
+I0000 00:00:1776049167.921717   19016 dot_search_space.cc:240] All configs were filtered out because none of them sufficiently match the hints. Maybe the hints set does not contain a good representative set of valid configs? Working around this by using the full hints set instead.
+I0000 00:00:1776049168.600097   19016 dot_search_space.cc:240] All configs were filtered out because none of them sufficiently match the hints. Maybe the hints set does not contain a good representative set of valid configs? Working around this by using the full hints set instead.
+I0000 00:00:1776049170.741860   19016 device_compiler.h:208] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+1340/1361 ━━━━━━━━━━━━━━━━━━━━ 0s 2ms/step - accuracy: 0.9355 - loss: 473.5672I0000 00:00:1776049173.085793   19012 dot_merger.cc:481] Merging Dots in computation: a_inference_one_step_on_data_1958__.11
+1361/1361 ━━━━━━━━━━━━━━━━━━━━ 14s 5ms/step - accuracy: 0.9463 - loss: 172.6707 - val_accuracy: 0.9725 - val_loss: 192.3888
+Epoch 2/10
+1361/1361 ━━━━━━━━━━━━━━━━━━━━ 3s 2ms/step - accuracy: 0.9483 - loss: 99.7998 - val_accuracy: 0.9725 - val_loss: 15.7603
+Epoch 3/10
+1361/1361 ━━━━━━━━━━━━━━━━━━━━ 3s 2ms/step - accuracy: 0.9479 - loss: 66.8291 - val_accuracy: 0.9725 - val_loss: 49.4325
+Epoch 4/10
+1361/1361 ━━━━━━━━━━━━━━━━━━━━ 3s 2ms/step - accuracy: 0.9487 - loss: 53.7480 - val_accuracy: 0.9725 - val_loss: 35.7621
+Epoch 5/10
+1361/1361 ━━━━━━━━━━━━━━━━━━━━ 3s 2ms/step - accuracy: 0.9476 - loss: 38.8896 - val_accuracy: 0.9725 - val_loss: 28.1403
+Epoch 6/10
+1361/1361 ━━━━━━━━━━━━━━━━━━━━ 3s 2ms/step - accuracy: 0.9480 - loss: 26.9145 - val_accuracy: 0.9725 - val_loss: 33.8398
+Epoch 7/10
+1361/1361 ━━━━━━━━━━━━━━━━━━━━ 4s 3ms/step - accuracy: 0.9482 - loss: 18.9811 - val_accuracy: 0.9725 - val_loss: 4.2640
+Epoch 8/10
+1361/1361 ━━━━━━━━━━━━━━━━━━━━ 3s 2ms/step - accuracy: 0.9477 - loss: 17.3767 - val_accuracy: 0.9666 - val_loss: 0.9314
+Epoch 9/10
+1361/1361 ━━━━━━━━━━━━━━━━━━━━ 3s 2ms/step - accuracy: 0.9481 - loss: 11.9657 - val_accuracy: 0.9724 - val_loss: 2.1237
+Epoch 10/10
+1361/1361 ━━━━━━━━━━━━━━━━━━━━ 3s 2ms/step - accuracy: 0.9485 - loss: 8.8468 - val_accuracy: 0.9725 - val_loss: 2.1092
+
+Analisis:
+
+    -Accuracy clavada
+
+    val_accuracy: 0.9725
+    val_accuracy: 0.9725
+    val_accuracy: 0.9725
+    ...
+
+    dataset desbalanceado o modelo aprendiendo una boludez trivial
+
+    -Loss rarísimo
+    loss: 473 → 172 → 99 → 66 → ... Eso es gigante para binary crossentropy
+
+    mirar bien escalado de datos o inputs estructurados
+
+en resuman no está evaluando posta, la métrica más mentirosa del universo (casi como mi ex)

@@ -1,0 +1,41 @@
+evaluación del modelo
+    ya no usamos solo accuracy, ahora usamos classification_report (precision, recall, F1)
+balanceo con class_weight
+    le damos más importancia al fraude, evitamos que el modelo diga siempre “no fraude” (como en el otro programita je)
+ver el desbalance del dataset
+    con y.value_counts() para entender cuántos fraudes hay realmente
+toquetear el split del dataset
+    agregar stratify=y, train y test tienen la misma proporción de clases
+organizar el pipeline
+    → datos → limpieza → embeddings → split → modelo → evaluación
+modelo medio híbrido
+    texto (embeddings) + datos numéricos, los combinamos con Concatenate()
+ver que todo corre bien
+    embeddings, modelo entrena, GPU disponible
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+resultado
+
+precision    recall  f1-score   support
+
+           0       0.98      0.94      0.96     10590
+           1       0.08      0.19      0.11       293
+
+    accuracy                           0.92     10883
+   macro avg       0.53      0.56      0.53     10883
+weighted avg       0.95      0.92      0.93     10883
+
+en tema de precision 0.08, acusa a cualquiera
+recall 0.19, se le escapan la mayoría
+accuracy 0.92, meh
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+probar con un class_weight mas agresivo
+
+
+invertigar:
+
+oversampling (SMOTE) - supuestamente crea fraudes artificiales para ver el tema de si el desbalanceo es el que jode
+o focal loss - función de pérdida que dice: “dejá de aprender de lo fácil, enfocáte en lo difícil”
