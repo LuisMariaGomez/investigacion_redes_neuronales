@@ -14,25 +14,25 @@ from sklearn.model_selection import train_test_split
 
 
 
-# 1. Cargar datos
+# Cargar datos
 df = load_data("data/raw/Robo_Ruedas.xlsx")
 
-# 2. Limpiar texto
+# Limpiar texto, aca mandarle el nombre de la columna que tenga nan
 df = clean_text(df, "TextoDenuncia")
 
 
-# 3. Separar features
+# Separar features (texto, datos estructurados, etiqueta)
 X_text, X_struct, y = split_features(df, "TextoDenuncia", "isfraud")
 
 # para ver que tan desbalanceado esta
-print("Distribución de clases:")
-print(y.value_counts())
+# print("Distribución de clases:")
+# print(y.value_counts())
 
-# 4. Embeddings (texto → vectores)
+# Embeddings (texto → vectores)
 embedder = HFEmbedder()
 X_text_emb = embedder.encode(X_text.tolist())
 
-# 5. Procesar datos estructurados (solo numéricos)
+# Procesar datos estructurados (solo numéricos)
 X_struct = X_struct.select_dtypes(include=[np.number]).fillna(0).values
 
 # 6. Split (IMPORTANTE: después de todo el procesamiento)
@@ -58,4 +58,4 @@ history = model.fit(
 )
 
 # 10. Evaluar 🔥
-evaluate(model, X_text_test, X_struct_test, y_test)
+evaluate(model, X_text_test, X_struct_test, y_test) 

@@ -49,7 +49,7 @@ Epoch 10/10
 
 Analisis:
 
-    -Accuracy clavada
+    -val_accuracys clavada
 
     val_accuracy: 0.9725
     val_accuracy: 0.9725

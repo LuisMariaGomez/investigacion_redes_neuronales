@@ -18,4 +18,4 @@ seguro el threshold sesga   # investigar trade-off precision vs recall
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-para la proxima bajamos el peso y subimos un toque el threshold, sino pasamos a eso de oversampling (SMOTE) y focal loss.... mas tarea
+para la proxima bajamos el peso y subimos un toque el threshold, sino pasamos a investigar eso de oversampling (SMOTE) y focal loss....
