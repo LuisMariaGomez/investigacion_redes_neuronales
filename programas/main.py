@@ -1,37 +1,90 @@
 from src.data_loader import load_data
 from src.preprocessing import (
-    build_structured_preprocessor,
-    clean_text,
+    build_formatted_text,
     split_features,
-    transform_structured_features,
 )
 from src.embeddings import HFEmbedder
 from src.model import build_model
-import numpy as np
 from imblearn.over_sampling import RandomOverSampler
-
-# para ver como esta evaluando (despues del primer intento)
-
 from src.evaluate import evaluate
 from sklearn.model_selection import train_test_split
+from sklearn.utils.class_weight import compute_class_weight
+import numpy as np
+
+
+THRESHOLDS = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+TEXT_EXAMPLES_TO_PRINT = 3
+
+
+def print_formatted_examples(texts, labels, limit=3):
+    print("\n===== Ejemplos de FormattedText =====")
+
+    for index, (text, label) in enumerate(zip(texts.iloc[:limit], labels.iloc[:limit]), start=1):
+        print(f"\nEjemplo {index} | isfraud={label}")
+        print(text)
+
+
+def run_experiment(
+    experiment_name,
+    X_train,
+    y_train,
+    X_test,
+    y_test,
+    use_oversampler=False,
+    class_weight=None,
+):
+    print(f"\n\n{'=' * 20} {experiment_name} {'=' * 20}")
+
+    X_train_final = X_train
+    y_train_final = y_train
+
+    if use_oversampler:
+        oversampler = RandomOverSampler(random_state=42)
+        X_train_final, y_train_final = oversampler.fit_resample(X_train, y_train)
+        print("Balanceo aplicado: RandomOverSampler")
+    else:
+        print("Balanceo aplicado: ninguno")
+
+    if class_weight is not None:
+        print(f"class_weight aplicado: {class_weight}")
+    else:
+        print("class_weight aplicado: ninguno")
+
+    print("Distribucion train original:")
+    print(y_train.value_counts())
+    print("Distribucion train usada para entrenar:")
+    print(y_train_final.value_counts())
+
+    model = build_model(X_train.shape[1])
+
+    model.fit(
+        X_train_final,
+        y_train_final,
+        validation_data=(X_test, y_test),
+        epochs=10,
+        batch_size=32,
+        class_weight=class_weight,
+    )
+
+    evaluate(model, X_test, y_test, thresholds=THRESHOLDS)
 
 # Cargar datos
 df = load_data("data/xlsx/Robo_Ruedas.xlsx")
 
-# Limpiar texto, aca mandarle el nombre de la columna que tenga nan
-df = clean_text(df, "TextoDenuncia")
+# Construir un texto unico por fila usando todos los campos menos la etiqueta
+df = build_formatted_text(df, "isfraud")
 
+# Separar features (texto enriquecido, etiqueta)
+X_text, y = split_features(df, "FormattedText", "isfraud")
 
-# Separar features (texto, datos estructurados, etiqueta)
-X_text, X_struct, y = split_features(df, "TextoDenuncia", "isfraud")
+print_formatted_examples(X_text, y, limit=TEXT_EXAMPLES_TO_PRINT)
 
-# para ver que tan desbalanceado esta
-# print("Distribución de clases:")
-# print(y.value_counts())
+print("\n===== Distribucion global de clases =====")
+print(y.value_counts())
 
-# 6. Split antes de transformar para evitar fuga de información
-X_text_train_raw, X_text_test_raw, X_struct_train_raw, X_struct_test_raw, y_train, y_test = train_test_split(
-    X_text, X_struct, y,
+# Split train/test
+X_text_train_raw, X_text_test_raw, y_train, y_test = train_test_split(
+    X_text, y,
     test_size=0.2,
     random_state=42,
     stratify=y
@@ -42,43 +95,36 @@ embedder = HFEmbedder()
 X_text_train = embedder.encode(X_text_train_raw.tolist())
 X_text_test = embedder.encode(X_text_test_raw.tolist())
 
-# Procesar datos estructurados: numéricos + categóricos con One-Hot Encoding
-struct_preprocessor, categorical_columns, numeric_columns = build_structured_preprocessor(
-    X_struct_train_raw
+classes = np.array(sorted(y_train.unique()))
+balanced_weights = compute_class_weight(
+    class_weight="balanced",
+    classes=classes,
+    y=y_train,
 )
-X_struct_train, X_struct_test = transform_structured_features(
-    struct_preprocessor,
-    X_struct_train_raw,
-    X_struct_test_raw,
-    categorical_columns,
-    numeric_columns,
-)
+class_weight = {cls: weight for cls, weight in zip(classes, balanced_weights)}
 
-print("Columnas numéricas:", numeric_columns)
-print("Columnas categóricas codificadas con One-Hot:", categorical_columns)
-print("Dimensión estructurada tras encoding:", X_struct_train.shape[1])
-
-# Aplicar oversampling solo sobre entrenamiento
-oversampler = RandomOverSampler(random_state=42)
-X_train_combined = np.hstack([X_text_train, X_struct_train])
-X_train_resampled, y_train_resampled = oversampler.fit_resample(X_train_combined, y_train)
-
-text_dim = X_text_train.shape[1]
-X_text_train_resampled = X_train_resampled[:, :text_dim]
-X_struct_train_resampled = X_train_resampled[:, text_dim:]
-
-# 7. Crear modelo
-model = build_model(X_text_train.shape[1], X_struct_train.shape[1])
-
-
-# Entrenar (con balanceo) despues emterlo en train.py
-history = model.fit(
-    [X_text_train_resampled, X_struct_train_resampled],
-    y_train_resampled,
-    validation_data=([X_text_test, X_struct_test], y_test),
-    epochs=10,
-    batch_size=32
+run_experiment(
+    experiment_name="Experimento 1 - Sin balanceo",
+    X_train=X_text_train,
+    y_train=y_train,
+    X_test=X_text_test,
+    y_test=y_test,
 )
 
-# 10. Evaluar 🔥
-evaluate(model, X_text_test, X_struct_test, y_test)
+run_experiment(
+    experiment_name="Experimento 2 - RandomOverSampler",
+    X_train=X_text_train,
+    y_train=y_train,
+    X_test=X_text_test,
+    y_test=y_test,
+    use_oversampler=True,
+)
+
+run_experiment(
+    experiment_name="Experimento 3 - class_weight",
+    X_train=X_text_train,
+    y_train=y_train,
+    X_test=X_text_test,
+    y_test=y_test,
+    class_weight=class_weight,
+)

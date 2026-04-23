@@ -1,0 +1,196 @@
+cambios:
+
+imprimir ejemplos de `FormattedText`
+    se muestran algunas filas ya transformadas a texto para revisar si el reformateo tiene sentido
+comparar tres variantes del mismo pipeline
+    experimento 1: sin balanceo
+    experimento 2: con `RandomOverSampler`
+    experimento 3: con `class_weight`
+evaluar thresholds mas altos
+    ademas de 0.3, 0.4, 0.5 y 0.6, tambien se probaron 0.7, 0.8 y 0.9
+agregar matriz de confusion
+    para ver claramente cuantos TN, FP, FN y TP aparecen en cada threshold
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+que se va mostrando cuando corre el programa
+
+ejemplos de `FormattedText`
+    se imprimen algunas filas reales ya convertidas al string final
+    sirve para revisar si el texto tiene sentido semantico o si estamos metiendo ruido raro
+    en esta corrida se vio que el texto esta bastante bien, aunque:
+    queda `..` al final en varios casos
+    algunos campos siguen sonando medio crudos
+    `diaSemanaOcu` aparece en ingles
+
+distribucion global de clases
+    muestra cuantos `0` y cuantos `1` hay en todo el dataset
+    en esta corrida:
+    `0 -> 52944`
+    `1 -> 1467`
+    o sea, desbalanceado...
+
+carga del modelo de embeddings
+    aparece una linea de `Loading weights`
+    eso es el modelo de Hugging Face cargando los pesos para transformar texto en embeddings
+
+bloque de cada experimento
+    antes de entrenar se imprime:
+    nombre del experimento
+    si hubo balanceo o no
+    si hubo `class_weight` o no
+    distribucion original del train
+    distribucion final usada para entrenar
+
+epocas de entrenamiento
+    en cada `Epoch` se muestran:
+    `accuracy`
+        porcentaje total de aciertos
+    `loss`
+        funcion de perdida durante entrenamiento
+    `val_accuracy`
+        accuracy sobre validacion
+    `val_loss`
+        loss sobre validacion
+    esto sirve para ver si el modelo aprende algo o si se desestabiliza
+
+evaluacion por threshold
+    para cada threshold se imprime:
+    `precision`
+        de todos los casos que el modelo marco como fraude, cuantos realmente eran fraude
+    `recall`
+        de todos los fraudes reales, cuantos encontro el modelo
+    `f1`
+        equilibrio entre precision y recall
+
+matriz de confusion
+    se imprime como:
+    `TN`: verdaderos negativos
+        no fraude predicho como no fraude
+    `FP`: falsos positivos
+        no fraude predicho como fraude
+    `FN`: falsos negativos
+        fraude predicho como no fraude
+    `TP`: verdaderos positivos
+        fraude predicho como fraude
+
+classification report
+    despues de eso aparece el reporte completo de sklearn
+    ahi se ve el detalle por clase `0` y `1`, junto con accuracy general, macro avg y weighted avg
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+resultado
+
+ejemplos de `FormattedText`
+    salieron razonables pero esta raro eso de "recibo domiciliado tiene valor 2 o días en inglés como sunday"
+    pero aon detalles de redaccion para mejorar
+
+experimento 1 - sin balanceo
+    el modelo colapso a predecir siempre `0`
+    no detecto ningun fraude en ningun threshold
+
+ejemplo fuerte de matriz de confusion:
+    `TN: 10590 | FP: 0 | FN: 293 | TP: 0`
+
+resultado:
+    accuracy alta, pero totalmente engañosa
+    con dataset tan desbalanceado, alcanza con predecir siempre no fraude para quedar en 97%
+    este experimento puede verse como una linea base
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+experimento 2 - `RandomOverSampler`
+    fue el unico que realmente detecto fraudes
+    pero lo hizo con demasiados falsos positivos
+
+threshold 0.30
+    fraude -> precision: 0.0294 | recall: 0.9556 | f1: 0.0570
+    matriz:
+    `TN: 1342 | FP: 9248 | FN: 13 | TP: 280`
+
+threshold 0.40
+    fraude -> precision: 0.0327 | recall: 0.8567 | f1: 0.0630
+    matriz:
+    `TN: 3168 | FP: 7422 | FN: 42 | TP: 251`
+
+threshold 0.50
+    fraude -> precision: 0.0367 | recall: 0.6928 | f1: 0.0698
+    matriz:
+    `TN: 5266 | FP: 5324 | FN: 90 | TP: 203`
+
+threshold 0.60
+    fraude -> precision: 0.0340 | recall: 0.1399 | f1: 0.0547
+    matriz:
+    `TN: 9424 | FP: 1166 | FN: 252 | TP: 41`
+
+threshold 0.70 / 0.80 / 0.90
+    no detecto ningun fraude
+    directamente pasa a predecir todo como `0`
+
+resultado:
+    `RandomOverSampler` sigue siendo la variante menos mala
+    el mejor punto de esta corrida fue threshold `0.50`
+    aun asi la precision sigue siendo bajisima
+    hay demasiados falsos positivos
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+experimento 3 - `class_weight`
+    se uso el peso automatico de sklearn
+    quedo:
+    `{0: 0.5138..., 1: 18.5383...}`
+
+resultado:
+    el entrenamiento quedo muy inestable
+    segun el threshold, el modelo pasa de marcar casi todo como fraude a marcar casi todo como no fraude
+
+threshold 0.50
+    fraude -> precision: 0.0269 | recall: 1.0000 | f1: 0.0524
+    matriz:
+    `TN: 0 | FP: 10590 | FN: 0 | TP: 293`
+
+threshold 0.60
+    fraude -> precision: 0.0000 | recall: 0.0000 | f1: 0.0000
+    matriz:
+    `TN: 10590 | FP: 0 | FN: 293 | TP: 0`
+
+lectura:
+    el `class_weight` automatico fue demasiado agresivo
+    no ayudo a encontrar un punto intermedio util
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+conclusion
+
+el reformateo a texto funciona
+    el pipeline nuevo corre bien...
+    los ejemplos impresos muestran que la idea tiene sentido
+
+sin balanceo el modelo ignora completamente la clase fraude
+    no sirve
+
+`RandomOverSampler` sigue siendo la mejor de estas tres opciones
+    al menos encuentra fraudes reales
+    el problema es que acusa demasiados casos que no lo son asi que puedo seguir con este y ver de tocar otras cosas
+
+`class_weight` automatico no conviene en este estado
+    desestabiliza mucho el comportamiento del modelo
+
+thresholds arriba de `0.7` no aportaron nada
+    el score del modelo no llega a separarse de manera util en esa zona
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+para la proxima
+
+limpiar mejor `FormattedText`
+    sacar el doble punto final
+    traducir dias al español
+    revisar si algunos codigos conviene expresarlos de otra forma
+probar `class_weight` manual y moderado
+    por ejemplo `{0:1, 1:3}` o `{0:1, 1:5}`
+guardar algunos falsos positivos
+    para ver que patrones esta confundiendo el modelo
+mirar distribucion de scores
+    para entender mejor por que arriba de `0.7` ya no predice fraude

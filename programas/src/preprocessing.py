@@ -1,69 +1,63 @@
-"""
-Aca la onda es separar:
-    texto
-    datos estructurados
-    etiqueta
-"""
+"""Utilidades para construir el texto enriquecido y separar la etiqueta."""
 
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.preprocessing import StandardScaler
 
-def clean_text(df, text_column):
-    df[text_column] = df[text_column].fillna("").str.lower()
+oraciones_para_formatear = {
+    "origeningreso": "el siniestro fue ingresado por",
+    "codzonaSancor": "en la zona de",
+    "nveh_valor": "el valor del auto es",
+    "reciboDomicializado": "el recibo domiciliado tiene valor",
+    "codProductor": "el codigo del productor es",
+    "diasVigPolDenuncia": "los dias de vigencia de poliza hasta la denuncia son",
+    "notifPolicial": "la notificacion policial tiene valor",
+    "antAuto": "la antiguedad del auto es",
+    "vigenciaCliente": "la vigencia del cliente es",
+    "CoberturaContra": "la cobertura contra es",
+    "tipoLugarOcurrencia": "el tipo de lugar de ocurrencia es",
+    "diaSemanaOcu": "el dia de la semana del hecho fue",
+    "horaOcu": "la hora del hecho fue",
+    "inspeccion": "la inspeccion tiene valor",
+    "inicioCobertura": "el inicio de cobertura tiene valor",
+    "cantiSinCli": "la cantidad de siniestros del cliente es",
+    "TextoDenuncia": "el texto de la denuncia es",
+}
+
+
+def _normalize_value(value):
+    if value is None:
+        return "missing"
+
+    if isinstance(value, str):
+        cleaned_value = value.strip()
+        return cleaned_value if cleaned_value else "missing"
+
+    try:
+        if value != value:
+            return "missing"
+    except Exception:
+        pass
+
+    return str(value).strip()
+
+
+def build_formatted_text(df, target_column):
+    df = df.copy()
+    feature_columns = [column for column in df.columns if column != target_column]
+
+    def row_to_text(row):
+        parts = []
+
+        for column in feature_columns:
+            label = oraciones_para_formatear.get(column, f"el valor de {column} es")
+            value = _normalize_value(row[column])
+            parts.append(f"{label} {value}")
+
+        return ", ".join(parts).lower() + "."
+
+    df["FormattedText"] = df.apply(row_to_text, axis=1)
     return df
 
+
 def split_features(df, text_column, target_column):
-    X_text = df[text_column]    # texto sin procesar de la denuncia
-    y = df[target_column]       # columna de etiquetas
-    X_struct = df.drop(columns=[text_column, target_column]) # volamos texto y etiqueta, queda solo lo estructurado
-    
-    return X_text, X_struct, y
-
-
-def build_structured_preprocessor(X_struct_train):
-    categorical_columns = X_struct_train.select_dtypes(
-        include=["object", "category", "bool"]
-    ).columns.tolist()
-    numeric_columns = X_struct_train.select_dtypes(include=["number"]).columns.tolist()
-
-    numeric_transformer = Pipeline(
-        steps=[
-            ("scaler", StandardScaler()),
-        ]
-    )
-
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ("num", numeric_transformer, numeric_columns),
-            (
-                "cat",
-                OneHotEncoder(handle_unknown="ignore", sparse_output=False),
-                categorical_columns,
-            ),
-        ]
-    )
-
-    return preprocessor, categorical_columns, numeric_columns
-
-
-def transform_structured_features(
-    preprocessor,
-    X_struct_train,
-    X_struct_test,
-    categorical_columns,
-    numeric_columns,
-):
-    X_struct_train = X_struct_train.copy()
-    X_struct_test = X_struct_test.copy()
-
-    X_struct_train[categorical_columns] = X_struct_train[categorical_columns].fillna("missing")
-    X_struct_test[categorical_columns] = X_struct_test[categorical_columns].fillna("missing")
-    X_struct_train[numeric_columns] = X_struct_train[numeric_columns].fillna(0)
-    X_struct_test[numeric_columns] = X_struct_test[numeric_columns].fillna(0)
-
-    X_struct_train_encoded = preprocessor.fit_transform(X_struct_train)
-    X_struct_test_encoded = preprocessor.transform(X_struct_test)
-
-    return X_struct_train_encoded, X_struct_test_encoded
+    X_text = df[text_column]
+    y = df[target_column]
+    return X_text, y

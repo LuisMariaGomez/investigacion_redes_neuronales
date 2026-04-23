@@ -1,0 +1,91 @@
+cambios:
+
+reestructurar el dataset para armar un texto unico por fila
+    en vez de separar `TextoDenuncia` por un lado y los estructurados por otro, ahora se arma un string con todos los campos
+    el formato queda tipo:
+    `el siniestro fue ingresado por {origeningreso}, en la zona de {codzonaSancor}, el valor del auto es {nveh_valor}...`
+usar todos los campos menos `isfraud`
+    `isfraud` se sigue usando como etiqueta
+    entran al texto `origeningreso`, `codzonaSancor`, `nveh_valor`, `reciboDomicializado`, `codProductor`, `diasVigPolDenuncia`, `notifPolicial`, `antAuto`, `vigenciaCliente`, `CoberturaContra`, `tipoLugarOcurrencia`, `diaSemanaOcu`, `horaOcu`, `inspeccion`, `inicioCobertura`, `cantiSinCli` y `TextoDenuncia`
+simplificar el pipeline a una sola entrada
+    ya no hay rama de texto + rama estructurada
+    ahora todo pasa por embeddings del texto formateado
+mantener `RandomOverSampler`
+    se sigue aplicando solo sobre train
+    ahora se aplica sobre los embeddings del texto enriquecido
+seguir evaluando varios thresholds
+    0.3, 0.4, 0.5 y 0.6
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+resultado
+
+Epoch 1/10
+    accuracy: 0.5134 - loss: 0.6926 - val_accuracy: 0.6619 - val_loss: 0.6731
+Epoch 2/10
+    accuracy: 0.5705 - loss: 0.6781 - val_accuracy: 0.3522 - val_loss: 0.7792
+Epoch 3/10
+    accuracy: 0.5883 - loss: 0.6700 - val_accuracy: 0.4383 - val_loss: 0.7050
+Epoch 4/10
+    accuracy: 0.5899 - loss: 0.6684 - val_accuracy: 0.4924 - val_loss: 0.6698
+Epoch 5/10
+    accuracy: 0.5911 - loss: 0.6677 - val_accuracy: 0.4796 - val_loss: 0.6680
+Epoch 6/10
+    accuracy: 0.5933 - loss: 0.6669 - val_accuracy: 0.4629 - val_loss: 0.6935
+Epoch 7/10
+    accuracy: 0.5941 - loss: 0.6665 - val_accuracy: 0.5178 - val_loss: 0.6468
+Epoch 8/10
+    accuracy: 0.5962 - loss: 0.6649 - val_accuracy: 0.5155 - val_loss: 0.6612
+Epoch 9/10
+    accuracy: 0.5974 - loss: 0.6637 - val_accuracy: 0.6276 - val_loss: 0.5984
+Epoch 10/10
+    accuracy: 0.5963 - loss: 0.6647 - val_accuracy: 0.5537 - val_loss: 0.6385
+
+Threshold 0.30
+    fraude -> precision: 0.0301 | recall: 0.9454 | f1: 0.0584
+
+Threshold 0.40
+    fraude -> precision: 0.0338 | recall: 0.8294 | f1: 0.0649
+
+Threshold 0.50
+    fraude -> precision: 0.0371 | recall: 0.6246 | f1: 0.0701
+
+Threshold 0.60
+    fraude -> precision: 0.0380 | recall: 0.2457 | f1: 0.0658
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+resultado
+
+el cambio de texto formateado funciono a nivel pipeline
+    el modelo entreno bien con una sola entrada de texto
+    `RandomOverSampler` se mantuvo sin romper nada
+
+el problema fuerte sigue siendo la precision
+    el modelo detecta muchos fraudes, pero mete una cantidad enorme de falsos positivos
+    cuando predice fraude casi siempre se equivoca
+
+lo mejor de esta iteracion fue el recall
+    con threshold bajo recupera casi todos los fraudes
+    pero esa mejora viene con precision bajisima
+
+el mejor f1 de esta tanda fue con threshold 0.50
+    fraude -> precision: 0.0371 | recall: 0.6246 | f1: 0.0701
+    igual sigue siendo flojo
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+para la proxima
+
+imprimir algunos ejemplos de `FormattedText`
+    revisar si el texto generado tiene sentido y no esta metiendo ruido raro
+probar este mismo pipeline sin `RandomOverSampler`
+    para comparar si el oversampling esta empujando demasiado a la clase fraude
+probar `class_weight` en vez de oversampling
+    capaz ayuda a balancear sin duplicar tantos positivos
+evaluar thresholds mas altos
+    probar 0.7, 0.8 y 0.9
+
+    
+mirar matriz de confusion
+    para entender mejor cuantos falsos positivos y falsos negativos reales estamos teniendo
