@@ -1,0 +1,48 @@
+Excel -> limpieza mínima -> escritura de texto formateado por fila -> plantear train/test -> embeddings 
+      -> convertir train/test en vectores numericos -> 3 experimentos de balanceo -> red neuronal -> evaluación por thresholds
+
+
+carga de datos - hecha por data_loader, lo puse como path por las dudas pintaba probar otro xlsx (auqnue habria que cambiar un poco la estructura)
+limpieza mínima - rellena valores vacíos en TextoDenuncia y CoberturaContra
+
+escritura de texto formateado por fila
+    con un diccionario se cambian los nommbre de las columnas por una frase (ver que son los numero con mati asi hacer que ponga cosas mas entendibles)
+    normalizar_espacios_o_vacios limpia cada valor antes de meterlo en el texto final (si el valor viene como None, lo reemplaza por "missing".)
+    la parte del try es para detectar los Nan (np.nan != np.nan da true no se porque, magia)
+    formatear_texto la pasamos el df y la columna de la etiqueta, crea una copia y armma una lista con las columnas menos la de la etiqueta
+    reescribir_campo_como_texto toma una fila del DataFrame y la convierte en un solo texto largo.
+        en campo_formateado se guarda el formato de texto segun su campo y el valor que tiene, en el return junto todos los pedazos con coma, paso todo a minúscula y agrega un punto final.
+    separar_texto_etiquetas separa lo que el moedlo usaria para aprender de las etiquetas
+
+definir train/test
+    Eso divide el dataset así:
+    80% para entrenamiento.
+    20% para test/evaluación.
+    stratify=y es para mantener más o menos la misma proporción de fraudes y no fraudes en train y test
+
+embeddings
+    con el modelo de Hugging Face se convierte el texto en un vector numérico
+    enconde recibe una lista de textos y devuelve una matriz de embeddings.
+
+convertir train/test en vectores numericos
+    agarra los textos de entrenamiento, los convierte a lista con .tolist(), y se los pasa a encode (o sea, textos crudos -> tokens -> modelo Hugging Face -> embeddings)
+
+experimentos    
+    está armada para comparar tres formas de entrenar el mismo modelo frente al problema del dataset del desbalanceo
+    como hay pocos fraudes, el modelo puede hacer trampa estadística: predecir siempre 0 y tener accuracy alta, pero no detectar fraudes en verdad. por eso se prueban tres estrategias asi comparamos rapidamente
+    la funcion correr_experimento 
+        recibe un nombre para pasar por consola, los embeddings y etiquetas de entrenamiento y test
+        usar_oversampler indica si va a usar "RandomOverSampler"
+        class_weight indica si va a usar pesos por clase
+
+        si usa usar_oversampler se crean ejemplos de fraude para tratar de balancear (no inventa, los repite)
+
+        si usa class_weight no duplica datos, sino le dice al modelo que ciertos errores pesan más, o sea, como fraude es la clase minoritaria, se le da más peso (equivocarse con un fraude pesa mucho más que equivocarse con un no fraude)
+
+        printea la cantidad de fraude no fraude
+
+        se crea un modelo por experimento y asi evitar reentrenar 
+
+        en el fit esta validation_data que es para ver cómo responde el modelo en datos que no usó para aprender
+
+        despues lo de epochs y batch_size esta hardcodeado pero podria hacer que se puedan cambiar y ver como reacciona

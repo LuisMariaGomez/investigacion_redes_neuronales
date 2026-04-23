@@ -22,7 +22,7 @@ oraciones_para_formatear = {
 }
 
 
-def _normalize_value(value):
+def normalizar_espacios_o_vacios(value):
     if value is None:
         return "missing"
 
@@ -39,25 +39,25 @@ def _normalize_value(value):
     return str(value).strip()
 
 
-def build_formatted_text(df, target_column):
+def formatear_texto(df, target_column):
     df = df.copy()
-    feature_columns = [column for column in df.columns if column != target_column]
+    campos_del_xlsx = [column for column in df.columns if column != target_column]
 
-    def row_to_text(row):
-        parts = []
+    def reescribir_campo_como_texto(row):
+        campo_formateado = []
 
-        for column in feature_columns:
-            label = oraciones_para_formatear.get(column, f"el valor de {column} es")
-            value = _normalize_value(row[column])
-            parts.append(f"{label} {value}")
+        for column in campos_del_xlsx:
+            texto_de_columna = oraciones_para_formatear.get(column, f"el valor de {column} es")
+            valor_campo = normalizar_espacios_o_vacios(row[column])
+            campo_formateado.append(f"{texto_de_columna} {valor_campo}")
 
-        return ", ".join(parts).lower() + "."
+        return ", ".join(campo_formateado).lower() + "."
 
-    df["FormattedText"] = df.apply(row_to_text, axis=1)
+    df["FormattedText"] = df.apply (reescribir_campo_como_texto, axis=1)
     return df
 
 
-def split_features(df, text_column, target_column):
+def separar_texto_etiquetas(df, text_column, target_column):
     X_text = df[text_column]
     y = df[target_column]
     return X_text, y
