@@ -55,4 +55,4 @@ mejor volver al estado anterior
     sacar `class_weight`
     dejar de forzar `codProductor` y `codzonaSancor` como categóricas
 
-Voy a seguir con dos ramas distintas una para
+Voy a seguir con dos ramas distintas una para probar reestructurar el codigo para que cree un string fomateado donde se pongan los valores de las variables categoricas y probar vectorizar eso y otro para probar eso de distancia de Gower
