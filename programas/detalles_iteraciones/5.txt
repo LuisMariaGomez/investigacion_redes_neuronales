@@ -1,0 +1,73 @@
+cambios:
+
+meter variables categóricas posta
+    antes las estábamos matando con `select_dtypes(include=[np.number])`
+    ahora entran con One-Hot Encoding
+probar oversampling con SMOTE
+    la idea era crear fraudes artificiales para compensar el desbalance
+SMOTE salió medio mal
+    lo estábamos aplicando sobre un vector mezclado de embeddings + numéricas + one-hot
+    eso genera ejemplos sintéticos medio raros, porque interpola cosas que no siempre tienen sentido
+mejorar el preprocesamiento estructurado
+    escalar las numéricas con `StandardScaler()`
+    mantener las categóricas con `One-Hot Encoding`
+cambiar SMOTE por RandomOverSampler
+    en vez de inventar ejemplos nuevos, duplica casos reales de fraude del train
+evaluar varios thresholds
+    probar 0.3, 0.4, 0.5 y 0.6 para ver el trade-off entre precision y recall
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+resultado con SMOTE
+
+precision    recall  f1-score   support
+
+           0       0.97      0.96      0.97     10590
+           1       0.03      0.05      0.04       293
+
+    accuracy                           0.94     10883
+   macro avg       0.50      0.50      0.50     10883
+weighted avg       0.95      0.94      0.94     10883
+
+conclusion:
+    SMOTE no ayudó casi nada
+    precision y recall de fraude quedaron horribles
+    encima conceptualmente estaba feo mezclar embeddings con one-hot para generar sintéticos
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+resultado con el cambio nuevo (One-Hot + escalado + RandomOverSampler)
+
+Threshold 0.30
+    fraude -> precision: 0.0574 | recall: 0.4334 | f1: 0.1014
+
+Threshold 0.40
+    fraude -> precision: 0.0594 | recall: 0.3925 | f1: 0.1032
+
+Threshold 0.50
+    fraude -> precision: 0.0639 | recall: 0.3584 | f1: 0.1085
+
+Threshold 0.60
+    fraude -> precision: 0.0675 | recall: 0.3174 | f1: 0.1114
+
+mejora:
+    ahora al menos el modelo detecta una parte razonable de los fraudes
+    no es una locura como cuando todo era fraude ni queda tan ciego como antes
+    el mejor threshold de esta tanda fue 0.60 por f1
+
+igual sigue flojo:
+    precision sigue bajísima, acusa a mucha gente al pedo
+    recall mejoró bastante frente a SMOTE, pero todavía se escapan varios fraudes
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+para la proxima
+
+probar class_weight moderado arriba de este pipeline
+    algo tipo {0:1, 1:3} o {0:1, 1:5}
+
+investigar focal loss (ver con mati para no meter mas verdura en la ensalada) 
+    capaz se adapta mejor al problema que seguir forzando oversampling
+
+revisar columnas que parecen códigos
+    `codProductor` o `codzonaSancor` quizá conviene tratarlas como categóricas y no como numéricas

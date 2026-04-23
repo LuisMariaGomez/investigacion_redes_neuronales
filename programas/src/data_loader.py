@@ -1,7 +1,7 @@
 import pandas as pd
 
 def load_data(path):
-    df = pd.read_excel("./data/xlsx/Robo_Ruedas.xlsx")
+    df = pd.read_excel(path)
     
     df["TextoDenuncia"] = df["TextoDenuncia"].fillna("")
     df["CoberturaContra"] = df["CoberturaContra"].fillna("")

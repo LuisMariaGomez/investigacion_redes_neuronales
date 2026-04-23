@@ -1,0 +1,58 @@
+probar class_weight moderado arriba del pipeline que venía mejor
+    usamos `class_weight = {0: 1, 1: 3}`
+forzar columnas código como categóricas
+    `codProductor` y `codzonaSancor` pasaron a One-Hot Encoding
+mantener lo que ya había mejorado
+    seguimos con `RandomOverSampler`
+    seguimos con escalado de numéricas
+    seguimos evaluando varios thresholds
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+resultado
+
+Columnas numéricas:
+    ['nveh_valor', 'reciboDomicializado', 'diasVigPolDenuncia', 'notifPolicial', 'antAuto', 'vigenciaCliente', 'horaOcu', 'inspeccion', 'inicioCobertura', 'cantiSinCli']
+
+Columnas categóricas codificadas con One-Hot:
+    ['CoberturaContra', 'codProductor', 'codzonaSancor', 'diaSemanaOcu', 'origeningreso', 'tipoLugarOcurrencia']
+
+Dimensión estructurada tras encoding:
+    5787
+
+Threshold 0.30
+    fraude -> precision: 0.0723 | recall: 0.0785 | f1: 0.0753
+
+Threshold 0.40
+    fraude -> precision: 0.0643 | recall: 0.0614 | f1: 0.0628
+
+Threshold 0.50
+    fraude -> precision: 0.0677 | recall: 0.0580 | f1: 0.0625
+
+Threshold 0.60
+    fraude -> precision: 0.0679 | recall: 0.0512 | f1: 0.0584
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+conclusion
+
+salió peor que la iteración anterior
+    la precision quedó casi igual
+    el recall de fraude se desplomó
+    el f1 también cayó bastante
+
+la pista fuerte es la explosión de dimensionalidad
+    al meter `codProductor` y `codzonaSancor` como categóricas, el bloque estructurado saltó a 5787 columnas
+    probablemente `codProductor` tenga demasiados valores distintos y meta mucho ruido
+
+mezclar oversampling + class_weight moderado no ayudó
+    no empujó mejor la detección de fraude
+    al contrario, dejó al modelo más pobre para la clase 1
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+mejor volver al estado anterior
+    sacar `class_weight`
+    dejar de forzar `codProductor` y `codzonaSancor` como categóricas
+
+Voy a seguir con dos ramas distintas una para
