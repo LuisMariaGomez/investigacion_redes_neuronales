@@ -1,0 +1,440 @@
+Pipeline rama anterior al reformateo, ordenado segun main.py:
+
+Excel -> limpiar TextoDenuncia -> separar texto / estructurados / etiqueta
+      -> split train/test -> embeddings para TextoDenuncia
+      -> preprocesamiento de X_struct -> oversampling solo en train
+      -> modelo con dos entradas -> entrenamiento -> evaluacion por thresholds
+
+
+imports
+    main trae funciones de varios archivos:
+        load_data desde data_loader
+        clean_text, split_features, build_structured_preprocessor y transform_structured_features desde preprocessing
+        HFEmbedder desde embeddings
+        build_model desde model
+        evaluate desde evaluate
+
+    tambien usa:
+        numpy para juntar y separar matrices
+        RandomOverSampler para balancear el train
+        train_test_split para dividir entrenamiento/test
+
+
+1 - cargar datos
+    en main:
+        df = load_data("data/xlsx/Robo_Ruedas.xlsx")
+
+    load_data esta en data_loader
+    recibe el path del xlsx y lo lee con pandas
+    rellena TextoDenuncia y CoberturaContra con "" si vienen vacios
+    esto evita que queden NaN molestando despues
+    devuelve el df completo
+
+
+2 - limpiar texto
+    en main:
+        df = clean_text(df, "TextoDenuncia")
+
+    clean_text esta en preprocessing
+    recibe el df y el nombre de la columna de texto
+    hace fillna("") para que si falta texto quede vacio y no NaN
+    despues pasa todo a minuscula con str.lower()
+    devuelve el mismo df con TextoDenuncia limpio
+
+    aca todavia no se hacen embeddings
+    solo se deja el texto un poco mas prolijo
+
+
+3 - separar features
+    en main:
+        X_text, X_struct, y = split_features(df, "TextoDenuncia", "isfraud")
+
+    split_features esta en preprocessing
+    recibe el df, la columna de texto y la columna target
+
+    X_text = df[text_column]
+        queda el texto crudo de la denuncia
+        en este caso es TextoDenuncia
+
+    y = df[target_column]
+        queda la respuesta correcta
+        en este caso isfraud, fraude o no fraude
+
+    X_struct = df.drop(columns=[text_column, target_column])
+        se vuelan TextoDenuncia e isfraud
+        queda todo lo demas como variables estructuradas
+
+    devuelve:
+        X_text
+        X_struct
+        y
+
+    idea general:
+        TextoDenuncia va por la rama de embeddings
+        X_struct va por la rama de datos estructurados
+        y se usa como etiqueta para entrenar y evaluar
+
+
+4 - revisar desbalanceo, opcional
+    en main esta comentado:
+        print(y.value_counts())
+
+    eso sirve para ver cuantos 0 y cuantos 1 hay
+    como hay muchos mas no fraude que fraude, el dataset esta desbalanceado
+    por eso despues aparece RandomOverSampler
+
+
+5 - dividir train/test
+    en main:
+        X_text_train_raw, X_text_test_raw, X_struct_train_raw, X_struct_test_raw, y_train, y_test = train_test_split(
+            X_text, X_struct, y,
+            test_size=0.2,
+            random_state=42,
+            stratify=y
+        )
+
+    train_test_split divide al mismo tiempo:
+        texto
+        estructurados
+        etiqueta
+
+    deja:
+        X_text_train_raw
+            textos para entrenar
+        X_text_test_raw
+            textos para evaluar
+        X_struct_train_raw
+            estructurados para entrenar
+        X_struct_test_raw
+            estructurados para evaluar
+        y_train
+            etiquetas de entrenamiento
+        y_test
+            etiquetas de test
+
+    raw significa que todavia estan crudos
+        el texto todavia no paso por embeddings
+        los estructurados todavia no pasaron por scaler ni one-hot
+
+    test_size=0.2
+        deja 80% train y 20% test
+
+    random_state=42
+        fija la mezcla para que los resultados sean repetibles
+
+    stratify=y
+        mantiene mas o menos la misma proporcion de fraude/no fraude en train y test
+        esto importa porque el dataset esta desbalanceado
+
+    esto se hace antes de fittear cualquier transformacion para evitar fuga de informacion
+        si el scaler o el one-hot aprendieran usando todo el dataset, tambien estarian aprendiendo cosas del test
+        el test no deberia enseniar nada antes de evaluar
+
+
+6 - embeddings del texto
+    en main:
+        embedder = HFEmbedder()
+        X_text_train = embedder.encode(X_text_train_raw.tolist())
+        X_text_test = embedder.encode(X_text_test_raw.tolist())
+
+    HFEmbedder esta en embeddings.py
+
+    embedder = HFEmbedder()
+        crea el objeto que convierte texto en vectores
+        en __init__ carga el tokenizer y el modelo de Hugging Face
+        el modelo default es microsoft/Multilingual-MiniLM-L12-H384
+        decide si usar cuda o cpu
+
+    tokenizer
+        transforma texto en tokens
+
+    model
+        transforma esos tokens en vectores numericos
+
+    encode
+        recibe una lista de textos
+        procesa por batch_size=32 para no mandar todo junto
+        tokeniza con:
+            padding=True para emparejar largos dentro del batch
+            truncation=True para cortar textos muy largos
+            max_length=128 para poner limite de tokens
+            return_tensors="pt" para devolver tensores de PyTorch
+        manda los tensores al device
+        usa torch.no_grad porque no estamos entrenando Hugging Face
+        toma outputs.last_hidden_state[:, 0, :]
+            usa el vector del primer token como representacion general del texto
+        junta todos los batches y devuelve un numpy array
+
+    resultado:
+        TextoDenuncia crudo -> tokens -> modelo HF -> matriz numerica de embeddings
+
+
+7 - armar preprocesador de estructurados
+    en main:
+        struct_preprocessor, categorical_columns, numeric_columns = build_structured_preprocessor(
+            X_struct_train_raw
+        )
+
+    build_structured_preprocessor esta en preprocessing
+    recibe solo X_struct_train_raw
+    eso esta bien porque el preprocesador debe aprender solo del train
+
+    busca columnas categoricas:
+        object
+        category
+        bool
+
+    busca columnas numericas:
+        number
+
+    para numericas arma:
+        Pipeline con StandardScaler
+
+    StandardScaler
+        escala los numeros
+        evita que una variable pese mas solo porque tiene numeros mas grandes
+        ejemplo: valor del auto puede tener numeros enormes frente a una cantidad chica
+
+    para categoricas arma:
+        OneHotEncoder
+
+    OneHotEncoder
+        convierte categorias en columnas 0/1
+        handle_unknown="ignore" evita que explote si en test aparece una categoria nueva
+        sparse_output=False hace que devuelva una matriz comun
+
+    ColumnTransformer
+        junta ambas transformaciones:
+            scaler para numericas
+            one-hot para categoricas
+
+    devuelve:
+        struct_preprocessor
+        categorical_columns
+        numeric_columns
+
+
+8 - transformar estructurados
+    en main:
+        X_struct_train, X_struct_test = transform_structured_features(
+            struct_preprocessor,
+            X_struct_train_raw,
+            X_struct_test_raw,
+            categorical_columns,
+            numeric_columns,
+        )
+
+    transform_structured_features esta en preprocessing
+    recibe el preprocessor y los X_struct de train y test
+    hace copias para no tocar los dataframes originales
+
+    en categoricas:
+        rellena faltantes con "missing"
+        asi el OneHotEncoder puede tratar missing como una categoria mas
+
+    en numericas:
+        rellena faltantes con 0
+        no es perfecto, pero evita NaN en el modelo
+
+    en train usa:
+        preprocessor.fit_transform(X_struct_train)
+
+    fit aprende:
+        medias y desvios para escalar numericas
+        categorias disponibles para one-hot
+
+    transform aplica:
+        esas reglas al train
+
+    en test usa:
+        preprocessor.transform(X_struct_test)
+
+    esto es clave:
+        el test se transforma con reglas aprendidas desde train
+        no se hace fit con test
+        asi se evita fuga de informacion
+
+    devuelve:
+        X_struct_train_encoded
+        X_struct_test_encoded
+
+
+9 - imprimir columnas usadas
+    en main:
+        print("Columnas numericas:", numeric_columns)
+        print("Columnas categoricas codificadas con One-Hot:", categorical_columns)
+        print("Dimension estructurada tras encoding:", X_struct_train.shape[1])
+
+    esto no cambia el modelo
+    solo ayuda a revisar que columnas entraron como numericas
+    y cuales entraron como categoricas
+
+    tambien muestra cuantas columnas quedaron despues del one-hot
+    puede crecer bastante si hay muchas categorias
+
+
+10 - oversampling
+    en main:
+        oversampler = RandomOverSampler(random_state=42)
+        X_train_combined = np.hstack([X_text_train, X_struct_train])
+        X_train_resampled, y_train_resampled = oversampler.fit_resample(X_train_combined, y_train)
+
+    se aplica solo sobre entrenamiento
+    nunca sobre test
+
+    como el modelo tiene dos entradas, primero se juntan embeddings y estructurados:
+        X_train_combined = np.hstack([X_text_train, X_struct_train])
+
+    RandomOverSampler
+        duplica casos de la clase minoritaria
+        en este caso fraude
+        no inventa datos nuevos
+        repite ejemplos reales para balancear train
+
+    y_train_resampled
+        queda con mas ejemplos de fraude repetidos
+
+
+11 - separar de nuevo texto y estructurados
+    en main:
+        text_dim = X_text_train.shape[1]
+        X_text_train_resampled = X_train_resampled[:, :text_dim]
+        X_struct_train_resampled = X_train_resampled[:, text_dim:]
+
+    como antes se habia juntado todo en una sola matriz, ahora se separa de nuevo
+
+    text_dim
+        dice cuantas columnas pertenecen al embedding de texto
+
+    X_text_train_resampled
+        toma desde el inicio hasta text_dim
+        eso recupera la parte de texto
+
+    X_struct_train_resampled
+        toma desde text_dim hasta el final
+        eso recupera la parte estructurada
+
+    esto se hace porque el modelo espera dos entradas:
+        una entrada para texto
+        una entrada para estructurados
+
+
+12 - crear modelo
+    en main:
+        model = build_model(X_text_train.shape[1], X_struct_train.shape[1])
+
+    build_model esta en model.py
+    recibe:
+        input_text_dim
+            tamanio del embedding
+        input_struct_dim
+            cantidad de columnas estructuradas despues del encoding
+
+    entrada de texto:
+        input_text recibe los embeddings
+        pasa por Dense 128 relu
+        despues Dense 64 relu
+        aprende una representacion mas chica del texto
+
+    entrada estructurada:
+        input_struct recibe numericas escaladas + one-hot
+        pasa por Dense 32 relu
+        aprende patrones de las variables estructuradas
+
+    merge:
+        Concatenate junta la rama de texto y la rama estructurada
+        despues Dense 64 relu mezcla ambas fuentes de informacion
+        la salida es Dense 1 sigmoid
+
+    sigmoid:
+        devuelve un score entre 0 y 1
+        cerca de 0 seria no fraude
+        cerca de 1 seria fraude
+
+    compile:
+        optimizer adam ajusta los pesos
+        loss binary_crossentropy porque es clasificacion binaria
+        metrics accuracy muestra aciertos generales
+        ojo con accuracy porque con clases desbalanceadas puede mentir bastante
+
+
+13 - entrenar modelo
+    en main:
+        history = model.fit(
+            [X_text_train_resampled, X_struct_train_resampled],
+            y_train_resampled,
+            validation_data=([X_text_test, X_struct_test], y_test),
+            epochs=10,
+            batch_size=32
+        )
+
+    model.fit recibe dos entradas:
+        [X_text_train_resampled, X_struct_train_resampled]
+
+    y recibe:
+        y_train_resampled
+
+    validation_data usa:
+        [X_text_test, X_struct_test], y_test
+
+    epochs=10
+        son 10 vueltas sobre el train
+
+    batch_size=32
+        entrena en grupos de 32 casos
+
+    history
+        guarda la historia del entrenamiento
+        por ejemplo loss, accuracy, val_loss y val_accuracy por epoca
+
+
+14 - evaluar
+    en main:
+        evaluate(model, X_text_test, X_struct_test, y_test)
+
+    evaluate esta en evaluate.py
+    recibe:
+        modelo entrenado
+        embeddings de texto de test
+        estructurados de test
+        etiquetas reales de test
+
+    si no le pasan thresholds usa:
+        [0.3, 0.4, 0.5, 0.6]
+
+    primero hace:
+        y_scores = model.predict([X_text_test, X_struct_test]).ravel()
+
+    eso devuelve scores entre 0 y 1
+
+    despues para cada threshold:
+        y_pred = (y_scores > threshold).astype(int)
+
+    o sea:
+        si el score supera el corte, predice fraude
+        si no lo supera, predice no fraude
+
+    threshold bajo
+        detecta mas fraudes
+        pero suele meter mas falsos positivos
+
+    threshold alto
+        acusa menos casos
+        pero se pueden escapar mas fraudes
+
+    imprime precision, recall y f1 solo para la clase fraude:
+        precision: de los que marque como fraude, cuantos eran fraude
+        recall: de todos los fraudes reales, cuantos encontre
+        f1: equilibrio entre precision y recall
+
+    tambien imprime classification_report completo
+
+
+lectura general
+    esta rama prueba si conviene tratar TextoDenuncia y X_struct como dos fuentes separadas
+    texto entra por embeddings
+    estructurados entran por scaler + one-hot
+    despues la red combina ambas cosas
+    el oversampling se aplica solo sobre train
+    el test queda sin tocar para evaluar de forma mas realista
+    la comparacion importante contra el pipeline de FormattedText es ver si separar texto + estructurados mejora frente a meter todo como texto enriquecido

@@ -21,7 +21,6 @@ df = load_data("data/xlsx/Robo_Ruedas.xlsx")
 # Limpiar texto, aca mandarle el nombre de la columna que tenga nan
 df = clean_text(df, "TextoDenuncia")
 
-
 # Separar features (texto, datos estructurados, etiqueta)
 X_text, X_struct, y = split_features(df, "TextoDenuncia", "isfraud")
 
@@ -80,5 +79,5 @@ history = model.fit(
     batch_size=32
 )
 
-# 10. Evaluar 🔥
+# 10. Evaluar
 evaluate(model, X_text_test, X_struct_test, y_test)
