@@ -46,3 +46,7 @@ experimentos
         en el fit esta validation_data que es para ver cómo responde el modelo en datos que no usó para aprender
 
         despues lo de epochs y batch_size esta hardcodeado pero podria hacer que se puedan cambiar y ver como reacciona
+
+    despues de entrenar se evalua el modelo en los test con varios 3shholds, por ejemplos:
+        caso A -> 0.42 probabilidad de fraude
+        caso B -> 0.81 probabilidad de fraude
